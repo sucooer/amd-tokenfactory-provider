@@ -1,0 +1,153 @@
+{
+  "name": "amd-tokenfactory-provider",
+  "publisher": "sucooer",
+  "displayName": "AMD TokenFactory Provider",
+  "description": "Use AMD TokenFactory models in GitHub Copilot Chat for VS Code",
+  "version": "0.3.8",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sucooer/amd-tokenfactory-provider"
+  },
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1A1A2E",
+    "theme": "dark"
+  },
+  "keywords": [
+    "copilot",
+    "copilot-chat",
+    "amd",
+    "tokenfactory",
+    "radeon",
+    "chat",
+    "vscode",
+    "ai",
+    "llm",
+    "models"
+  ],
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "activationEvents": [
+    "onLanguageModelChatProvider:amd-tokenfactory"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languageModelChatProviders": [
+      {
+        "vendor": "amd-tokenfactory",
+        "displayName": "AMD TokenFactory",
+        "configuration": {
+          "properties": {
+            "apiKey": {
+              "type": "string",
+              "secret": true,
+              "description": "API key from AMD TokenFactory (https://developer.amd.com.cn/radeon/tokenfactory)",
+              "title": "API Key"
+            }
+          },
+          "required": [
+            "apiKey"
+          ]
+        }
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "amd_tokenfactory_analyze_image",
+        "toolReferenceName": "analyzeImage",
+        "displayName": "AMD TokenFactory Analyze Image",
+        "modelDescription": "Analyze an image with the AMD TokenFactory vision model and return a text description.",
+        "userDescription": "Analyze an image using AMD TokenFactory Vision.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "image_data": {
+              "type": "string",
+              "description": "Base64-encoded image data URL."
+            },
+            "prompt": {
+              "type": "string",
+              "description": "Instruction describing what to analyze in the image."
+            }
+          },
+          "required": [
+            "image_data",
+            "prompt"
+          ]
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "amd-tokenfactory.manage",
+        "title": "Manage AMD TokenFactory API Key",
+        "category": "AMD TokenFactory"
+      },
+      {
+        "command": "amd-tokenfactory.refreshModels",
+        "title": "Refresh Models",
+        "category": "AMD TokenFactory"
+      },
+      {
+        "command": "amd-tokenfactory.toggleDebugLogging",
+        "title": "Toggle Debug Logging",
+        "category": "AMD TokenFactory"
+      },
+      {
+        "command": "amd-tokenfactory.openDebugLog",
+        "title": "Open Debug Log",
+        "category": "AMD TokenFactory"
+      },
+      {
+        "command": "amd-tokenfactory.toggleShowReasoning",
+        "title": "Toggle Reasoning Content Display",
+        "category": "AMD TokenFactory"
+      }
+    ],
+    "configuration": {
+      "title": "AMD TokenFactory",
+      "properties": {
+        "amd-tokenfactory.showReasoning": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show model reasoning content (thinking process) in responses. Some models like DeepSeek R1 emit reasoning that may be useful for debugging."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "bun run compile",
+    "compile": "node -e \"require('node:fs').rmSync('out',{recursive:true,force:true})\" && tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/ tests/",
+    "lint:fix": "eslint src/ tests/ --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
+    "package:vsix": "bun run compile && vsce package --allow-missing-repository",
+    "sync:pi": "bun scripts/sync-from-pi.ts",
+    "sync:pi:write": "bun scripts/sync-from-pi.ts --write"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.104.0",
+    "@vscode/vsce": "^3.9.0",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "jest": "^29.0.0",
+    "prettier": "^3.8.3",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.58.2"
+  },
+  "dependencies": {}
+}
