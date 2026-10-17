@@ -2,7 +2,6 @@
 
 VS Code extension that adds an AMD TokenFactory (Radeon Cloud) provider to Copilot Chat.
 
-> Forked from [hidenobunagai/nvidia-nim-provider](https://github.com/hidenobunagai/nvidia-nim-provider)
 > and adapted for AMD's OpenAI-compatible API.
 
 ## Requirements
