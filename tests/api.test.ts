@@ -1,0 +1,582 @@
+import { fetchModels, fetchWithRetry, streamChatCompletion } from "../src/api";
+import { REQUEST_TIMEOUT_MS, STREAM_IDLE_TIMEOUT_MS } from "../src/constants";
+import { AmdModelSummary, AmdTokenFactoryStreamResponse } from "../src/types";
+
+const rawModelSummaries: AmdModelSummary[] = [
+  {
+    id: "meta/llama-4-maverick-17b-128e-instruct",
+    name: "Llama 4 Maverick 17B 128E Instruct",
+    context_length: 262144,
+    supported_parameters: ["temperature", "max_tokens", "tools", "stream"],
+    providers: [{ providerId: "shared", vision: true, tools: true, streaming: true }],
+  },
+];
+
+describe("fetchModels", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("returns raw AMD model summaries on success", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => rawModelSummaries,
+    } as any);
+
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(rawModelSummaries);
+    expect(result?.[0]).toEqual(
+      expect.objectContaining({
+        id: "meta/llama-4-maverick-17b-128e-instruct",
+        context_length: 262144,
+        providers: expect.arrayContaining([expect.objectContaining({ vision: true })]),
+      }),
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      "https://developer.amd.com.cn/radeon/api/v1/models",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: "Bearer test-key" }),
+      }),
+    );
+  });
+
+  it("returns null on failure", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      text: async () => "Invalid key",
+    } as any);
+
+    const result = await fetchModels("bad-key");
+    expect(result).toBeNull();
+  });
+
+  it("retries on network failure and succeeds", async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => rawModelSummaries,
+      } as any);
+
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(rawModelSummaries);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries up to 3 times then returns null", async () => {
+    global.fetch = jest.fn().mockRejectedValue(new Error("Network error"));
+
+    const result = await fetchModels("test-key");
+    expect(result).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("retries on 429 with Retry-After then succeeds", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: { get: (name: string) => (name === "retry-after" ? "1" : null) },
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => rawModelSummaries,
+      } as any);
+
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(rawModelSummaries);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries on 503 then succeeds", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: "Service Unavailable",
+        headers: { get: () => null },
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => rawModelSummaries,
+      } as any);
+
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(rawModelSummaries);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("parses Retry-After as HTTP-date format", async () => {
+    // Freeze the client clock so the parsed HTTP-date is guaranteed to be ahead of it.
+    // HTTP-date only carries second precision, so against a real clock "+1000 ms" is
+    // sometimes rounded into the past, which takes the exponential-backoff path instead
+    // and flipped getRetryAfterMs' branch coverage between runs (74.57 <-> 75.75%).
+    const now = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(now);
+    const retryDate = new Date(now + 1000).toUTCString();
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "retry-after": retryDate }),
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => rawModelSummaries,
+      } as any);
+
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(rawModelSummaries);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  }, 10000);
+
+  it("falls back to exponential backoff when the Retry-After date is already past", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "retry-after": new Date(Date.now() - 10000).toUTCString() }),
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => rawModelSummaries,
+      } as any);
+
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(rawModelSummaries);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to exponential backoff when Retry-After is unparseable", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "retry-after": "not-a-number" }),
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => rawModelSummaries,
+      } as any);
+
+    const result = await fetchModels("test-key");
+    expect(result).toEqual(rawModelSummaries);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry on 401 and returns null immediately", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      text: async () => "Invalid key",
+    } as any);
+
+    const result = await fetchModels("bad-key");
+    expect(result).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("streamChatCompletion", () => {
+  beforeEach(() => {
+    delete (globalThis as Record<string, unknown>).fetch;
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("yields parsed SSE chunks", async () => {
+    const chunk: AmdTokenFactoryStreamResponse = {
+      id: "1",
+      object: "chat.completion.chunk",
+      created: 1,
+      model: "kimi-k2.6",
+      choices: [{ index: 0, delta: { content: "Hello" }, finish_reason: null }],
+    };
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    const results: AmdTokenFactoryStreamResponse[] = [];
+    for await (const item of gen) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0].choices[0].delta.content).toBe("Hello");
+  });
+
+  it("throws on non-ok response", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: "Internal Server Error",
+      text: async () => "Server error",
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    await expect(gen.next()).rejects.toThrow("[SERVER_ERROR] Server error.");
+  });
+
+  it("throws authentication error on 401", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      text: async () => "Invalid key",
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    await expect(gen.next()).rejects.toThrow(
+      "[AUTH_FAILED] Authentication failed. Your API key may be invalid or expired.",
+    );
+  });
+
+  it("retries on 429 and eventually throws after exhausting retries", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: { get: (name: string) => (name === "retry-after" ? "0" : null) },
+      text: async () => "Rate limited",
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    await expect(gen.next()).rejects.toThrow("HTTP 429");
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+  it("handles partial lines across chunks", async () => {
+    const chunk: AmdTokenFactoryStreamResponse = {
+      id: "1",
+      object: "chat.completion.chunk",
+      created: 1,
+      model: "kimi-k2.6",
+      choices: [{ index: 0, delta: { content: "Hello" }, finish_reason: null }],
+    };
+    const encoder = new TextEncoder();
+    const jsonStr = JSON.stringify(chunk);
+    const part1 = `data: ${jsonStr.slice(0, 10)}`;
+    const part2 = `${jsonStr.slice(10)}\n\n`;
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(part1));
+        controller.enqueue(encoder.encode(part2));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    const results: AmdTokenFactoryStreamResponse[] = [];
+    for await (const item of gen) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0].choices[0].delta.content).toBe("Hello");
+  });
+
+  it("skips malformed JSON lines", async () => {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode("data: {invalid json}\n\n"));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    const results: AmdTokenFactoryStreamResponse[] = [];
+    for await (const item of gen) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(0);
+  });
+
+  it("uses dynamic idle timeout based on maxOutputTokens", async () => {
+    const chunk: AmdTokenFactoryStreamResponse = {
+      id: "1",
+      object: "chat.completion.chunk",
+      created: 1,
+      model: "kimi-k2.6",
+      choices: [{ index: 0, delta: { content: "hello" }, finish_reason: null }],
+    };
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const gen = streamChatCompletion(
+      "test-key",
+      {
+        model: "test-model",
+        messages: [{ role: "user", content: "hi" }],
+        stream: true,
+        max_tokens: 100,
+        temperature: 0,
+      },
+      new AbortController().signal,
+      "test-agent",
+      { maxOutputTokens: 500 },
+    );
+
+    for await (const _ of gen) {
+      // consume
+    }
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the reader when the stream idle timeout elapses", async () => {
+    jest.useFakeTimers();
+
+    try {
+      const cancel = jest.fn().mockResolvedValue(undefined);
+      const reader = {
+        read: jest.fn(() => new Promise(() => undefined)),
+        cancel,
+        releaseLock: jest.fn(),
+      };
+
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        body: {
+          getReader: () => reader,
+        },
+      } as any);
+
+      const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+      const nextPromise = gen.next();
+      const rejection = expect(nextPromise).rejects.toThrow(
+        "AMD TokenFactory streaming timeout: no data received",
+      );
+
+      await jest.advanceTimersByTimeAsync(STREAM_IDLE_TIMEOUT_MS);
+
+      await rejection;
+      expect(cancel).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("reports a request timeout instead of AbortError when no headers arrive", async () => {
+    jest.useFakeTimers();
+    try {
+      global.fetch = jest.fn(
+        (_u, init) =>
+          new Promise((_r, reject) =>
+            init?.signal?.addEventListener("abort", () => reject(init?.signal?.reason)),
+          ),
+      );
+
+      const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+      const p = gen.next().catch((e) => e);
+
+      await jest.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+
+      const error = await p;
+      expect(error.name).toBe("TimeoutError");
+      expect(error.message).toMatch(/request timeout/);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("keeps AbortError when the caller cancels before the timeout", async () => {
+    global.fetch = jest.fn(
+      (_u, init) =>
+        new Promise((_r, reject) =>
+          init?.signal?.addEventListener("abort", () => reject(init?.signal?.reason)),
+        ),
+    );
+
+    const controller = new AbortController();
+    const gen = streamChatCompletion(
+      "key",
+      { model: "kimi-k2.6", messages: [], stream: true },
+      controller.signal,
+    );
+    const p = gen.next().catch((e) => e);
+
+    controller.abort();
+
+    const error = await p;
+    expect(error.name).toBe("AbortError");
+  });
+});
+
+describe("fetchWithRetry", () => {
+  beforeEach(() => {
+    delete (globalThis as Record<string, unknown>).fetch;
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("stops waiting for Retry-After when the signal aborts", async () => {
+    jest.useFakeTimers();
+    try {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "retry-after": "30" }),
+      } as any);
+
+      const controller = new AbortController();
+      const p = fetchWithRetry("https://example.com", { signal: controller.signal }).catch(
+        (e) => e,
+      );
+
+      await jest.advanceTimersByTimeAsync(1000);
+      controller.abort();
+
+      const error = await p;
+      expect(error.name).toBe("AbortError");
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  // Regression: the abort reason is a DOMException, which does not extend Error under Jest
+  // (it does in production Node). Detecting the abort with `instanceof Error` therefore fails
+  // here, and an abort that lands on the final attempt — where no retry wait follows to carry
+  // the original reason back out — is rethrown as a generic error instead of a cancellation.
+  it("reports an abort as AbortError when it lands on the last attempt", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    expect(controller.signal.reason).not.toBeInstanceOf(Error);
+
+    global.fetch = jest.fn((_u, init) => Promise.reject(init?.signal?.reason));
+
+    const error = await fetchWithRetry(
+      "https://example.com",
+      { signal: controller.signal },
+      1,
+    ).catch((e) => e);
+
+    expect(error.name).toBe("AbortError");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports an abort as AbortError when no retry waits are left", async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    global.fetch = jest.fn(() => Promise.reject(new Error("socket hang up")));
+
+    const error = await fetchWithRetry(
+      "https://example.com",
+      { signal: controller.signal },
+      1,
+    ).catch((e) => e);
+
+    expect(error.name).toBe("AbortError");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a cancellation when the abort lands mid-request as a network error", async () => {
+    jest.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      global.fetch = jest.fn(
+        () =>
+          new Promise((_r, reject) => {
+            // Abort while the request is in flight, but reject with a plain error as a transport
+            // failure would: the retry loop must still recognize the caller's cancellation.
+            setTimeout(() => {
+              controller.abort();
+              reject(new Error("socket hang up"));
+            }, 10);
+          }),
+      );
+
+      const error = await Promise.all([
+        fetchWithRetry("https://example.com", { signal: controller.signal }).catch((e) => e),
+        jest.advanceTimersByTimeAsync(20),
+      ]).then(([err]) => err);
+
+      expect(error.name).toBe("AbortError");
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  // The request timeout fires while a retry is waiting out a 429: the wait now aborts instead of
+  // running to completion, so the caller sees the cancellation immediately.
+  it("aborts during the retry wait when the signal fires", async () => {
+    jest.useFakeTimers();
+    try {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "retry-after": "30" }),
+      } as any);
+
+      const controller = new AbortController();
+      const p = fetchWithRetry("https://example.com", { signal: controller.signal }).catch(
+        (e) => e,
+      );
+
+      await jest.advanceTimersByTimeAsync(500);
+      controller.abort(new Error("caller stopped waiting"));
+
+      const error = await p;
+      expect(error.name).toBe("AbortError");
+      expect(error.message).toBe("caller stopped waiting");
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
