@@ -152,6 +152,7 @@ export function activate(context: vscode.ExtensionContext) {
   const ua = `amd-tokenfactory-provider/${EXTENSION_VERSION} VSCode/${vscode.version}`;
   const channel = getOutputChannel();
   context.subscriptions.push(channel);
+  outputLog("activate", "activate() started");
   const statusBar = new StatusBarManager();
   context.subscriptions.push(statusBar);
   const debugEnabled = context.globalState.get<boolean>(DEBUG_STATE_KEY, false);
@@ -311,6 +312,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  outputLog("settings-view", "registering webview view provider");
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       SettingsViewProvider.viewId,
@@ -319,6 +321,7 @@ export function activate(context: vscode.ExtensionContext) {
       }),
     ),
   );
+  outputLog("settings-view", "webview view provider registered");
 
   void initializeStoredApiKey(context, ua, statusBar);
   void checkForUpdates(context);

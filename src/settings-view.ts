@@ -10,6 +10,7 @@ import {
   REFRESH_MODELS_COMMAND_ID,
 } from "./constants";
 import { errorMessage } from "./errors";
+import { outputLog } from "./output-channel";
 
 export interface SettingsViewState {
   keys: string[];
@@ -37,6 +38,7 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
   ) {}
 
   public resolveWebviewView(webviewView: vscode.WebviewView): void {
+    outputLog("settings-view", "resolveWebviewView called");
     const webview = webviewView.webview;
     webview.options = { enableScripts: true };
     webview.html = getWebviewHtml(webview);
