@@ -49,6 +49,7 @@ Test files live in `tests/` and mostly mirror the `src/` structure (`sync-from-p
 - `tests/announcement.test.ts` — Action-announcement detection and nudge text
 - `tests/guidance.test.ts` — System prompt sanitization and guidance
 - `tests/key-rotation.test.ts` — API key pool: rotation storage, migration, masking
+- `tests/updater.test.ts` — Self-update: version parsing/comparison, release lookup, update prompt flow
 - `tests/model-catalog.test.ts` — Model normalization and capability inference
 - `tests/mcp.test.ts` — Vision MCP client integration
 - `tests/tools.test.ts` — Language model tool registration
@@ -127,6 +128,7 @@ nvidia-nim-provider/
 │   ├── mcp.ts                # Vision MCP client
 │   ├── guidance.ts           # System prompt guidance
 │   ├── key-rotation.ts       # API key rotation pool
+│   ├── updater.ts            # Self-update check against the rolling GitHub release
 │   ├── output-channel.ts     # Debug logging
 │   ├── constants.ts          # Constants + workarounds
 │   ├── errors.ts             # Realm-safe error classification

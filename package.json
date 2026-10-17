@@ -3,7 +3,7 @@
   "publisher": "sucooer",
   "displayName": "AMD TokenFactory Provider",
   "description": "Use AMD TokenFactory models in GitHub Copilot Chat for VS Code",
-  "version": "0.3.8",
+  "version": "0.4.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -87,6 +87,11 @@
       {
         "command": "amd-tokenfactory.manage",
         "title": "Manage AMD TokenFactory API Key",
+        "category": "AMD TokenFactory"
+      },
+      {
+        "command": "amd-tokenfactory.checkForUpdates",
+        "title": "Check for Updates",
         "category": "AMD TokenFactory"
       },
       {

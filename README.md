@@ -2,6 +2,7 @@
 
 VS Code extension that adds an AMD TokenFactory (Radeon Cloud) provider to Copilot Chat.
 
+> Forked from [hidenobunagai/nvidia-nim-provider](https://github.com/hidenobunagai/nvidia-nim-provider)
 > and adapted for AMD's OpenAI-compatible API.
 
 ## Requirements
@@ -52,6 +53,16 @@ with the next key.
 
 Keys are stored in VS Code SecretStorage. A previously configured single key
 is migrated into the rotation pool automatically.
+
+## Updating
+
+The extension checks the rolling `latest` release on GitHub once a day. When a
+newer version is available, it offers a one-click **Download & Install**. You
+can also check manually with **AMD TokenFactory: Check for Updates** from the
+Command Palette.
+
+Note: an update is detected only when `package.json`'s `version` is bumped, so
+bump it whenever shipping changes.
 
 ## Supported Models
 

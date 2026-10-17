@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { fetchModels } from "./api";
 import {
+  CHECK_FOR_UPDATES_COMMAND_ID,
   DEBUG_ENV_VAR,
   DEBUG_STATE_KEY,
   EXTENSION_VERSION,
@@ -21,6 +22,7 @@ import {
 import { errorMessage } from "./errors";
 import { ApiKeyPool, maskApiKey } from "./key-rotation";
 import { normalizeAmdModels } from "./model-catalog";
+import { checkForUpdates } from "./updater";
 import { debugLog, disposeOutputChannel, getOutputChannel, outputLog } from "./output-channel";
 import { AmdTokenFactoryChatModelProvider } from "./provider";
 import { StatusBarManager } from "./status-bar";
@@ -302,7 +304,14 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand(CHECK_FOR_UPDATES_COMMAND_ID, async () => {
+      await checkForUpdates(context, { force: true });
+    }),
+  );
+
   void initializeStoredApiKey(context, ua, statusBar);
+  void checkForUpdates(context);
 }
 
 export function deactivate() {

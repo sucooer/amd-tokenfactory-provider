@@ -576,6 +576,10 @@ describe("activate", () => {
         if (key === "amd-tokenfactory.debug") {
           return false;
         }
+        if (key === "amd-tokenfactory.lastUpdateCheck") {
+          // Skip the self-update check so this test only exercises the refresh path.
+          return Date.now();
+        }
         if (key === "amd-tokenfactory.rawModels") {
           return previousRawModels;
         }
