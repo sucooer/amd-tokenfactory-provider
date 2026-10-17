@@ -23,6 +23,7 @@ import { errorMessage } from "./errors";
 import { ApiKeyPool, maskApiKey } from "./key-rotation";
 import { normalizeAmdModels } from "./model-catalog";
 import { checkForUpdates } from "./updater";
+import { SettingsViewProvider } from "./settings-view";
 import { debugLog, disposeOutputChannel, getOutputChannel, outputLog } from "./output-channel";
 import { AmdTokenFactoryChatModelProvider } from "./provider";
 import { StatusBarManager } from "./status-bar";
@@ -308,6 +309,15 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(CHECK_FOR_UPDATES_COMMAND_ID, async () => {
       await checkForUpdates(context, { force: true });
     }),
+  );
+
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      SettingsViewProvider.viewId,
+      new SettingsViewProvider(context, context.secrets, () => {
+        _provider?.fireModelInfoChanged();
+      }),
+    ),
   );
 
   void initializeStoredApiKey(context, ua, statusBar);

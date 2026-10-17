@@ -20,6 +20,7 @@ const mockRegisterCommand = jest.fn(
 );
 const mockExecuteCommand = jest.fn();
 const mockRegisterLanguageModelChatProvider = jest.fn(() => ({ dispose: jest.fn() }));
+const mockRegisterWebviewViewProvider = jest.fn(() => ({ dispose: jest.fn() }));
 
 jest.mock("../src/api", () => ({
   fetchModels: jest.fn(),
@@ -58,6 +59,7 @@ jest.mock("vscode", () => ({
     showErrorMessage: mockShowErrorMessage,
     showInputBox: mockShowInputBox,
     showQuickPick: mockShowQuickPick,
+    registerWebviewViewProvider: mockRegisterWebviewViewProvider,
   },
   commands: {
     registerCommand: mockRegisterCommand,

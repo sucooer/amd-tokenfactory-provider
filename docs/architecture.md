@@ -40,6 +40,7 @@ Copilot Chat
 | `guidance.ts` | Builds system-prompt guidance: provider identity, tool-use instructions, and DeepSeek-specific prompt sanitization. |
 | `key-rotation.ts` | Round-robin pool of API keys backed by SecretStorage (`ApiKeyPool`), with legacy single-key migration and masked display (`maskApiKey`). |
 | `updater.ts` | Self-update check: fetches the latest GitHub release, compares the vsix asset version against the running version, and offers one-click download & install. |
+| `settings-view.ts` | Sidebar settings panel (`SettingsViewProvider` WebviewView): masked API key list with add/remove, model count with refresh, and installed version with update check. |
 | `output-channel.ts` | Centralized debug logging via `vscode.OutputChannel`. |
 | `constants.ts` | API base URL, timeout values, context window safety margins, and thinking-model sets. |
 | `errors.ts` | Classifies aborts and timeouts by `name` instead of `instanceof`, which is realm-dependent: `DOMException` extends `Error` in Node but not in Jest's node environment. Also normalizes unknown thrown values to `Error` and extracts user-facing messages. |
