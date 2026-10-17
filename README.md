@@ -36,15 +36,23 @@ You can also run `AMD TokenFactory: Manage AMD TokenFactory API Key` from the Co
 
 ## Multiple API keys (rotation)
 
-Run `AMD TokenFactory: Manage AMD TokenFactory API Key` and choose **Add API key**
-to store additional keys. Chat requests rotate across all configured keys in
-round-robin order, which spreads load under the per-key rate limit
-(~30 requests/minute). If a request fails with an authentication or
-rate-limit error, it is automatically retried with the next key.
+To add keys:
 
-Keys are stored in VS Code SecretStorage and shown masked
-(e.g. `rc-35c3…8e54`). A previously configured single key is migrated into
-the rotation pool automatically.
+1. Open the Command Palette (`Ctrl+Shift+P`).
+2. Run **AMD TokenFactory: Manage AMD TokenFactory API Key**.
+3. Choose **Add API key…** and paste the key (starts with `rc-`).
+4. Repeat steps 1–3 for each additional key.
+
+The same menu offers **List API keys** (masked, e.g. `rc-35c3…8e54`) and
+**Remove API key…`.
+
+Chat requests rotate across all configured keys in round-robin order, which
+spreads load under the per-key rate limit (~30 requests/minute). If a request
+fails with an authentication or rate-limit error, it is automatically retried
+with the next key.
+
+Keys are stored in VS Code SecretStorage. A previously configured single key
+is migrated into the rotation pool automatically.
 
 ## Supported Models
 
