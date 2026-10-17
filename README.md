@@ -90,6 +90,10 @@ truncate the visible response.
   (`stop`, `seed`, `logit_bias`, `logprobs`, …); `system` messages must come first.
 - Rate limits: ~30 requests/minute per key, 8 concurrent requests per key.
 
+## Architecture
+
+![Architecture](docs/architecture.png)
+
 ## Development
 
 ```bash
