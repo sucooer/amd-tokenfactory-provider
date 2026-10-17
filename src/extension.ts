@@ -56,7 +56,9 @@ async function initializeStoredApiKey(
   ua: string,
   statusBar: StatusBarManager,
 ): Promise<void> {
-  const apiKey = await context.secrets.get(SECRET_STORAGE_KEY);
+  const pool = new ApiKeyPool();
+  await pool.load(context.secrets);
+  const apiKey = pool.getKeys()[0] ?? (await context.secrets.get(SECRET_STORAGE_KEY));
   if (!apiKey) {
     return;
   }

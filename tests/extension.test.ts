@@ -317,7 +317,63 @@ describe("activate", () => {
     expect(mockShowErrorMessage).not.toHaveBeenCalled();
   });
 
+  it("refreshes cached models in the background on activation when keys are in the rotation pool", async () => {
+    const rawModels = [
+      {
+        id: "meta/llama-4-maverick-17b-128e-instruct",
+        name: "Llama 4 Maverick",
+        context_length: 128000,
+        supported_parameters: ["temperature", "max_tokens", "tools"],
+        providers: [{ vision: true, tools: true }],
+      },
+    ];
+    (fetchModels as jest.Mock).mockResolvedValue(rawModels);
+
+    const secrets = {
+      get: jest.fn(async (key: string) =>
+        key === "amd-tokenfactory.apiKeys"
+          ? JSON.stringify(["pool-key-one", "pool-key-two"])
+          : undefined,
+      ),
+      store: jest.fn(),
+      delete: jest.fn(),
+      onDidChange: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+    const globalState = {
+      get: jest.fn((key: string, fallback?: unknown) =>
+        key === "amd-tokenfactory.debug" ? false : fallback,
+      ),
+      update: jest.fn(async () => undefined),
+    };
+    const context = {
+      secrets,
+      globalState,
+      subscriptions: [] as Array<{ dispose(): void }>,
+    };
+
+    const { activate } = await import("../src/extension");
+    activate(context as never);
+    await flushAsyncWork();
+
+    expect(fetchModels).toHaveBeenCalledWith(
+      "pool-key-one",
+      undefined,
+      expect.stringContaining("amd-tokenfactory-provider/"),
+    );
+    expect(globalState.update).toHaveBeenCalledWith("amd-tokenfactory.models", [
+      {
+        id: "meta/llama-4-maverick-17b-128e-instruct",
+        displayName: "Llama 4 Maverick",
+        contextWindow: 128000,
+        maxOutputTokens: 65536,
+        supportsTools: true,
+        supportsVision: true,
+      },
+    ]);
+  });
+
   it("stores raw and normalized model caches when the refresh command succeeds", async () => {
+    let getCallCount = 0;
     const rawModels = [
       {
         id: "meta/llama-4-maverick-17b-128e-instruct",
@@ -334,11 +390,12 @@ describe("activate", () => {
     (fetchModels as jest.Mock).mockResolvedValue(rawModels);
 
     const secrets = {
-      get: jest
-        .fn()
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce("test-key"),
+      get: jest.fn(async () => {
+        getCallCount += 1;
+        // Activation (pool.load x2 + legacy fallback) sees no key; the manual
+        // refresh afterwards finds the key via pool migration.
+        return getCallCount <= 3 ? undefined : "test-key";
+      }),
       store: jest.fn(),
       delete: jest.fn(),
       onDidChange: jest.fn(() => ({ dispose: jest.fn() })),
@@ -379,14 +436,16 @@ describe("activate", () => {
   });
 
   it("clears raw and normalized model caches when the refresh command returns an empty model list", async () => {
+    let getCallCount = 0;
     (fetchModels as jest.Mock).mockResolvedValue([]);
 
     const secrets = {
-      get: jest
-        .fn()
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce("test-key"),
+      get: jest.fn(async () => {
+        getCallCount += 1;
+        // Activation (pool.load x2 + legacy fallback) sees no key; the manual
+        // refresh afterwards finds the key via pool migration.
+        return getCallCount <= 3 ? undefined : "test-key";
+      }),
       store: jest.fn(),
       delete: jest.fn(),
       onDidChange: jest.fn(() => ({ dispose: jest.fn() })),
@@ -479,6 +538,7 @@ describe("activate", () => {
   });
 
   it("rolls back the raw cache if normalized cache persistence fails", async () => {
+    let getCallCount = 0;
     const rawModels = [
       {
         id: "meta/llama-4-maverick-17b-128e-instruct",
@@ -497,11 +557,12 @@ describe("activate", () => {
       .mockRejectedValueOnce(new Error("persist normalized failed"))
       .mockResolvedValueOnce(undefined);
     const secrets = {
-      get: jest
-        .fn()
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce("test-key"),
+      get: jest.fn(async () => {
+        getCallCount += 1;
+        // Activation (pool.load x2 + legacy fallback) sees no key; the manual
+        // refresh afterwards finds the key via pool migration.
+        return getCallCount <= 3 ? undefined : "test-key";
+      }),
       store: jest.fn(),
       delete: jest.fn(),
       onDidChange: jest.fn(() => ({ dispose: jest.fn() })),
@@ -640,6 +701,7 @@ describe("activate", () => {
   });
 
   it("preserves the normalized cache write error when rollback also fails", async () => {
+    let getCallCount = 0;
     const rawModels = [
       {
         id: "meta/llama-4-maverick-17b-128e-instruct",
@@ -654,11 +716,12 @@ describe("activate", () => {
     const normalizedWriteError = new Error("persist normalized failed");
     const rollbackWriteError = new Error("rollback failed");
     const secrets = {
-      get: jest
-        .fn()
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce("test-key"),
+      get: jest.fn(async () => {
+        getCallCount += 1;
+        // Activation (pool.load x2 + legacy fallback) sees no key; the manual
+        // refresh afterwards finds the key via pool migration.
+        return getCallCount <= 3 ? undefined : "test-key";
+      }),
       store: jest.fn(),
       delete: jest.fn(),
       onDidChange: jest.fn(() => ({ dispose: jest.fn() })),
