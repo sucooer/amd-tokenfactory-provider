@@ -33,12 +33,17 @@ jobs:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --ignore-scripts --frozen-lockfile
+      # images/icon.png is stored as base64 text (images/icon.png.b64) because
+      # the GitHub connector cannot push binary files; decode it before packaging.
+      - name: Restore icon.png
+        run: base64 -d images/icon.png.b64 > images/icon.png
       - run: bun run package:vsix
       - uses: actions/upload-artifact@v7
         with:
           name: vsix
           path: "*.vsix"
           retention-days: 30
+
 
   release:
     needs: package
