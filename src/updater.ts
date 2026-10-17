@@ -49,7 +49,7 @@ export interface ReleaseInfo {
 }
 
 /**
- * The latest rolling release published by CI. Returns null when unavailable
+ * The latest published GitHub release. Returns null when unavailable
  * (offline, no release published yet, API rate limited, ...). Never throws.
  */
 export async function fetchLatestRelease(): Promise<ReleaseInfo | null> {

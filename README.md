@@ -56,7 +56,7 @@ is migrated into the rotation pool automatically.
 
 ## Updating
 
-The extension checks the rolling `latest` release on GitHub once a day. When a
+The extension checks the latest GitHub release once a day. When a
 newer version is available, it offers a one-click **Download & Install**. You
 can also check manually with **AMD TokenFactory: Check for Updates** from the
 Command Palette.

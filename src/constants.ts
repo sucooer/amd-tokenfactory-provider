@@ -9,7 +9,7 @@ export const API_KEYS_STORAGE_KEY = "amd-tokenfactory.apiKeys";
 /** Rolling GitHub release checked for self-updates. */
 export const UPDATE_REPO_OWNER = "sucooer";
 export const UPDATE_REPO_NAME = "amd-tokenfactory-provider";
-export const UPDATE_RELEASES_API_URL = `https://api.github.com/repos/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/releases/tags/latest`;
+export const UPDATE_RELEASES_API_URL = `https://api.github.com/repos/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/releases/latest`;
 /** Minimum time between automatic update checks. */
 export const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 export const UPDATE_CHECK_STATE_KEY = "amd-tokenfactory.lastUpdateCheck";
