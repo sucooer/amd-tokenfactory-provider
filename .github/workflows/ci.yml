@@ -25,3 +25,17 @@ jobs:
           name: coverage-report-${{ matrix.os }}
           path: coverage/
           retention-days: 14
+
+  package:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --ignore-scripts --frozen-lockfile
+      - run: bun run package:vsix
+      - uses: actions/upload-artifact@v7
+        with:
+          name: vsix
+          path: "*.vsix"
+          retention-days: 30
