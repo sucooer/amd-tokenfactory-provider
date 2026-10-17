@@ -7,6 +7,8 @@ export interface NormalizedAmdModel {
   maxOutputTokens: number;
   supportsTools: boolean;
   supportsVision: boolean;
+  /** True when the API reports this model as free (mirrors the FREE badge on the website). */
+  free: boolean;
 }
 
 const DEFAULT_CONTEXT_WINDOW = 131072;
@@ -98,6 +100,7 @@ export function normalizeAmdModel(model: AmdModelSummary): NormalizedAmdModel {
       override?.supportsVision ??
       (anyProvider((p) => p.vision) ||
         inputModalities.some((m) => m.toLowerCase().includes("image"))),
+    free: model.free ?? false,
   };
 }
 

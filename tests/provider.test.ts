@@ -117,6 +117,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
                 maxOutputTokens: 262144,
                 supportsTools: true,
                 supportsVision: true,
+                free: false,
               },
               {
                 id: "meta/llama-4-maverick-17b-128e-instruct",
@@ -125,6 +126,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
                 maxOutputTokens: 16384,
                 supportsTools: true,
                 supportsVision: false,
+                free: false,
               },
             ]
           : undefined,
@@ -183,6 +185,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 65536,
         supportsTools: true,
         supportsVision: false,
+        free: false,
       },
     ]);
     expect(infos).toEqual([
@@ -239,6 +242,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
             maxOutputTokens: 16384,
             supportsTools: true,
             supportsVision: false,
+            free: false,
           },
         ];
       }
@@ -273,6 +277,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
             maxOutputTokens: 16384,
             supportsTools: true,
             supportsVision: false,
+            free: false,
           },
         ];
       }
@@ -341,6 +346,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
             maxOutputTokens: 16384,
             supportsTools: true,
             supportsVision: false,
+            free: false,
           },
         ];
       }
@@ -387,6 +393,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
             maxOutputTokens: 16384,
             supportsTools: true,
             supportsVision: false,
+            free: false,
           },
         ];
       }
@@ -435,6 +442,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
             maxOutputTokens: 16384,
             supportsTools: true,
             supportsVision: false,
+            free: false,
           },
         ];
       }
@@ -475,6 +483,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
             maxOutputTokens: 16384,
             supportsTools: true,
             supportsVision: false,
+            free: false,
           },
         ];
       }
@@ -521,6 +530,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
             maxOutputTokens: 16384,
             supportsTools: false,
             supportsVision: false,
+            free: false,
           },
         ];
       }
@@ -569,6 +579,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
             maxOutputTokens: 16384,
             supportsTools: false,
             supportsVision: false,
+            free: false,
           },
         ];
       }
@@ -606,6 +617,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: false,
         supportsVision: false,
+        free: false,
       },
     ];
     (globalState.get as jest.Mock).mockImplementation((key: string) => {
@@ -678,6 +690,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: false,
+        free: false,
       },
     ];
     (globalState.get as jest.Mock).mockImplementation((key: string) => {
@@ -848,6 +861,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: false,
+        free: false,
       },
     ]);
 
@@ -893,6 +907,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: false,
+        free: false,
       },
       {
         id: "nvidia/vision-capable-fallback",
@@ -901,6 +916,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: true,
+        free: false,
       },
     ]);
 
@@ -968,6 +984,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: false,
+        free: false,
       },
       {
         id: "adept/fuyu-8b",
@@ -976,6 +993,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: false,
         supportsVision: true,
+        free: false,
       },
       {
         id: "meta/llama-3.2-11b-vision-instruct",
@@ -984,6 +1002,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: true,
+        free: false,
       },
     ]);
 
@@ -1039,6 +1058,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: false,
+        free: false,
       },
     ]);
 
@@ -1106,6 +1126,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: true,
+        free: false,
       },
     ]);
 
@@ -1193,6 +1214,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
               maxOutputTokens: 200000,
               supportsTools: true,
               supportsVision: false,
+              free: false,
             },
           ]
         : undefined,
@@ -1924,6 +1946,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
         maxOutputTokens: 16384,
         supportsTools: true,
         supportsVision: false,
+        free: false,
       },
     ]);
 
@@ -3622,6 +3645,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
               maxOutputTokens: 16384,
               supportsTools: true,
               supportsVision: false,
+              free: false,
             },
           ]
         : undefined,
@@ -3684,6 +3708,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
               maxOutputTokens: 16384,
               supportsTools: true,
               supportsVision: false,
+              free: false,
             },
           ]
         : undefined,
@@ -3744,6 +3769,7 @@ describe("AmdTokenFactoryChatModelProvider", () => {
                 maxOutputTokens: 16384,
                 supportsTools: true,
                 supportsVision: false,
+                free: false,
               },
             ]
           : undefined,

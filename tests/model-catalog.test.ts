@@ -6,6 +6,20 @@ import {
 import type { AmdModelSummary } from "../src/types";
 
 describe("normalizeAmdModels", () => {
+  it("preserves the free flag from the API", () => {
+    const [freeModel, paidModel] = normalizeAmdModels([
+      { id: "m/free", name: "Free Model", context_length: 1000, free: true },
+      { id: "m/paid", name: "Paid Model", context_length: 1000, free: false },
+    ]);
+    expect(freeModel.free).toBe(true);
+    expect(paidModel.free).toBe(false);
+  });
+
+  it("defaults free to false when the API omits it", () => {
+    const [model] = normalizeAmdModels([{ id: "m/x", name: "X", context_length: 1000 }]);
+    expect(model.free).toBe(false);
+  });
+
   it("normalizes AMD catalog entries with context_length and provider capability flags", () => {
     const raw: AmdModelSummary[] = [
       {
@@ -26,6 +40,7 @@ describe("normalizeAmdModels", () => {
         id: "DeepSeek-V4-Flash",
         displayName: "DeepSeek V4 Flash",
         supportsVision: false,
+        free: false,
         supportsTools: true,
         contextWindow: 1048576,
       }),
@@ -71,6 +86,7 @@ describe("normalizeAmdModels", () => {
         maxOutputTokens: 65536,
         supportsTools: true,
         supportsVision: false,
+        free: false,
       },
     ]);
   });
@@ -140,6 +156,7 @@ describe("normalizeAmdModels", () => {
         maxOutputTokens: 262144,
         supportsTools: true,
         supportsVision: true,
+        free: false,
       }),
     ).toBe(true);
     expect(
@@ -150,6 +167,7 @@ describe("normalizeAmdModels", () => {
         maxOutputTokens: "262144",
         supportsTools: true,
         supportsVision: true,
+        free: false,
       }),
     ).toBe(false);
   });

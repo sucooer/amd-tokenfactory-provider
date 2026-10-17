@@ -527,8 +527,8 @@ export class AmdTokenFactoryChatModelProvider implements LanguageModelChatProvid
       return {
         id: info.id,
         name: info.displayName,
-        detail: PROVIDER_DISPLAY_NAME,
-        tooltip: `${PROVIDER_DISPLAY_NAME} ${info.displayName}`,
+        detail: info.free ? `${PROVIDER_DISPLAY_NAME} · FREE` : PROVIDER_DISPLAY_NAME,
+        tooltip: `${PROVIDER_DISPLAY_NAME} ${info.displayName}${info.free ? " (free)" : ""}`,
         family: PROVIDER_VENDOR,
         version: "1.0.0",
         maxInputTokens: Math.max(

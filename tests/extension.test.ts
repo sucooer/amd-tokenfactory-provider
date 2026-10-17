@@ -311,6 +311,7 @@ describe("activate", () => {
         maxOutputTokens: 65536,
         supportsTools: true,
         supportsVision: true,
+        free: false,
       },
     ]);
     expect(providerInstance.fireModelInfoChanged).toHaveBeenCalled();
@@ -368,6 +369,7 @@ describe("activate", () => {
         maxOutputTokens: 65536,
         supportsTools: true,
         supportsVision: true,
+        free: false,
       },
     ]);
   });
@@ -430,6 +432,7 @@ describe("activate", () => {
         maxOutputTokens: 65536,
         supportsTools: true,
         supportsVision: true,
+        free: false,
       },
     ]);
     expect(mockShowInformationMessage).toHaveBeenCalledWith("Refreshed 1 AMD TokenFactory models.");
@@ -501,6 +504,7 @@ describe("activate", () => {
               maxOutputTokens: 16384,
               supportsTools: true,
               supportsVision: false,
+              free: false,
             },
           ];
         }
@@ -584,6 +588,7 @@ describe("activate", () => {
               maxOutputTokens: 16384,
               supportsTools: false,
               supportsVision: false,
+              free: false,
             },
           ];
         }
@@ -615,6 +620,7 @@ describe("activate", () => {
         maxOutputTokens: 65536,
         supportsTools: true,
         supportsVision: true,
+        free: false,
       },
     ]);
     expect(update).toHaveBeenNthCalledWith(3, "amd-tokenfactory.rawModels", previousRawModels);
