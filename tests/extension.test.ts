@@ -301,10 +301,7 @@ describe("activate", () => {
     const { activate } = await import("../src/extension");
     activate(context as never);
 
-    expect(mockRegisterWebviewViewProvider).toHaveBeenCalledWith(
-      views[0]?.id,
-      expect.anything(),
-    );
+    expect(mockRegisterWebviewViewProvider).toHaveBeenCalledWith(views[0]?.id, expect.anything());
   });
 
   it("refreshes cached models in the background on activation when an API key exists", async () => {
