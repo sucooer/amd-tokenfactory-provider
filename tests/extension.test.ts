@@ -40,14 +40,23 @@ const mockStatusBarOk = jest.fn();
 const mockStatusBarRefresh = jest.fn();
 const mockStatusBarError = jest.fn();
 const mockStatusBarDispose = jest.fn();
+const mockStatusBarSetModels = jest.fn();
+const mockStatusBarSetModelLoad = jest.fn();
+const mockWatchModelLoad = jest.fn(() => ({ dispose: jest.fn() }));
 
 jest.mock("../src/status-bar", () => ({
   StatusBarManager: jest.fn().mockImplementation(() => ({
     showOk: mockStatusBarOk,
     showRefreshing: mockStatusBarRefresh,
     showError: mockStatusBarError,
+    setModels: mockStatusBarSetModels,
+    setModelLoad: mockStatusBarSetModelLoad,
     dispose: mockStatusBarDispose,
   })),
+}));
+
+jest.mock("../src/model-load", () => ({
+  watchModelLoad: mockWatchModelLoad,
 }));
 
 jest.mock("vscode", () => ({
@@ -123,6 +132,10 @@ describe("activate", () => {
       "amd-tokenfactory.manage",
       expect.any(Function),
     );
+    // The status bar tooltip lists the cached models against AMD's fleet load, so activation both
+    // seeds the model list and starts the poller.
+    expect(mockStatusBarSetModels).toHaveBeenCalledWith([]);
+    expect(mockWatchModelLoad).toHaveBeenCalledWith({ onSnapshot: expect.any(Function) });
     expect(process.env.AMD_TOKENFACTORY_DEBUG).toBe("0");
   });
 

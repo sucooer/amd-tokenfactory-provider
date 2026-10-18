@@ -80,6 +80,22 @@ Reasoning models (DeepSeek R1/V4, Kimi K3/K2.6, GLM 5.x, GPT-OSS, QwQ, …) get 
 minimum output budget floor and silent retries so long thinking steps cannot
 truncate the visible response.
 
+## Fleet load
+
+Hover the `AMD TokenFactory: N models` status bar item to see how loaded the fleet is right now:
+every model in your picker is grouped into **Available**, **Busy** and **At capacity**, with the
+percentage AMD reports.
+
+The numbers come from AMD's public load endpoint
+(`https://developer.amd.com.cn/radeon/api/tokenfactory/load`) — the same data behind the
+**Busy** / **At capacity** gauges on the TokenFactory page. Two things to keep in mind:
+
+- It is **AMD-wide capacity, not your account's quota**: it tells you which models are worth
+  choosing, not how much you have left.
+- It needs no API key, but it queries live GPU metrics and answers in ~25 seconds. The extension
+  therefore reads it in the background every five minutes and the tooltip shows the timestamp of
+  the last reading.
+
 ## API notes
 
 - Base URL: `https://developer.amd.com.cn/radeon/api/v1`

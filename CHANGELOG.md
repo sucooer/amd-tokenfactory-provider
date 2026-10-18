@@ -1,5 +1,20 @@
 # Change Log
 
+## [0.6.0] - 2026-10-18
+
+### Added
+
+- **The status bar tooltip now answers "which models can I actually use right now".** Hovering `AMD TokenFactory: N models` lists the models in the picker grouped into **Available** (`idle`), **Busy** and **At capacity** (`full`), with the percentage AMD reports and the time it was read. The header says `AMD-wide capacity (scope fleet), not your account's quota`, because it is: the endpoint reports AMD's whole deployment, and its numbers say nothing about a single key's remaining allowance.
+
+- **`src/model-load.ts`**: `fetchModelLoad()` reads `https://developer.amd.com.cn/radeon/api/tokenfactory/load` — the public, key-less endpoint behind the **Busy** / **At capacity** gauges on the TokenFactory page — with a 45s timeout, because the endpoint queries live GPU metrics and consistently answers in 25–27s (measured 5× before the change). `matchModelLoad()` pairs each entry to a cached model by normalized name, which is what makes `DeepSeek-V4.1-Flash` (the endpoint's key) and `deepseek-ai/deepseek-v4.1-flash` (the `/v1/models` id) meet; entries that match nothing are listed under "Also on the fleet" rather than dropped, since the fleet also carries models the account cannot see.
+
+- **`watchModelLoad()`** polls with a chained timeout instead of `setInterval`: one request can outlast a 20s interval, and the website's own 20s polling already shows what overlapping requests look like. The extension re-reads every five minutes and never blocks a chat request on it.
+
+### Changed
+
+- **`StatusBarManager`** keeps the current model list and the last load snapshot, and rebuilds a `MarkdownString` tooltip (`supportThemeIcons`) whenever either changes. A failed read renders as "fleet load unavailable" instead of an empty section, and the first read — still in flight for ~25s — renders as "loading", so the tooltip never claims the fleet is idle when it simply has not answered.
+- **Activation seeds the tooltip** from the cached model list and re-seeds it after every model refresh, so the panel is populated before the first hover.
+
 ## [0.5.6] - 2026-10-18
 
 ### Fixed

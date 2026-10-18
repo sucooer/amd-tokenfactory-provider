@@ -30,6 +30,19 @@ export const TOGGLE_SHOW_REASONING_COMMAND_ID = "amd-tokenfactory.toggleShowReas
 export const BASE_URL = "https://developer.amd.com.cn/radeon/api/v1";
 export const EXTENSION_VERSION: string = pkg.version;
 
+/**
+ * Public fleet-load endpoint behind the "Busy" / "At capacity" gauges on the TokenFactory page.
+ * No API key and no cookie are needed, but it reports AMD's whole deployment (`scope: "fleet"`),
+ * not the caller's account.
+ */
+export const MODEL_LOAD_URL = "https://developer.amd.com.cn/radeon/api/tokenfactory/load";
+
+/** The endpoint queries live GPU metrics and answers in ~25s, so the timeout has to allow for it. */
+export const MODEL_LOAD_TIMEOUT_MS = 45000;
+
+/** Re-read interval for the fleet load. The website polls every 20s; a tooltip needs far less. */
+export const MODEL_LOAD_POLL_INTERVAL_MS = 5 * 60 * 1000;
+
 /** Safety margin for context window calculations (in tokens) */
 export const CONTEXT_WINDOW_SAFETY_MARGIN = 4096;
 

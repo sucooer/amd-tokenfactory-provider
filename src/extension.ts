@@ -21,8 +21,9 @@ import {
 } from "./constants";
 import { errorMessage } from "./errors";
 import { ApiKeyPool, maskApiKey } from "./key-rotation";
-import { normalizeAmdModels } from "./model-catalog";
+import { normalizeAmdModels, NormalizedAmdModel } from "./model-catalog";
 import { checkForUpdates } from "./updater";
+import { watchModelLoad } from "./model-load";
 import { SettingsViewProvider } from "./settings-view";
 import { debugLog, disposeOutputChannel, getOutputChannel, outputLog } from "./output-channel";
 import { AmdTokenFactoryChatModelProvider } from "./provider";
@@ -115,6 +116,7 @@ async function refreshModelsFromApi(
           }
           await context.globalState.update(MODELS_CACHE_VERSION_STATE_KEY, MODELS_CACHE_VERSION);
           _provider?.fireModelInfoChanged();
+          statusBar.setModels(normalizedModels);
           statusBar.showOk(normalizedModels.length);
           debugLog(
             "refreshModels",
@@ -155,6 +157,13 @@ export function activate(context: vscode.ExtensionContext) {
   outputLog("activate", "activate() started");
   const statusBar = new StatusBarManager();
   context.subscriptions.push(statusBar);
+  statusBar.setModels(context.globalState.get<NormalizedAmdModel[]>(MODELS_STATE_KEY, []));
+  // AMD's fleet load is what the website's Busy / At capacity gauges show. It needs no API key,
+  // answers in ~25s, and is only surfaced in the status bar tooltip, so it is polled rarely and
+  // never awaited by anything user-facing.
+  context.subscriptions.push(
+    watchModelLoad({ onSnapshot: (load) => statusBar.setModelLoad(load) }),
+  );
   const debugEnabled = context.globalState.get<boolean>(DEBUG_STATE_KEY, false);
   process.env[DEBUG_ENV_VAR] = debugEnabled ? "1" : "0";
   debugLog(
