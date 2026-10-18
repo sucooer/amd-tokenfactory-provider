@@ -1,5 +1,94 @@
 # Change Log
 
+## [0.5.6] - 2026-10-18
+
+### Fixed
+
+- **The sidebar Settings view was built as a TreeView, so it rendered "There is no data provider registered that can provide view data" instead of the panel.** `contributes.views` declared `amd-tokenfactory.settings` without a `type`, and that field defaults to `tree`, so VS Code created a TreeView pane for the id while the extension registered a `WebviewViewProvider` under the same id — two registries that never meet. `resolveWebviewView` was therefore never called: the 0.5.5 diagnostics logged `registering webview view provider` and `webview view provider registered`, and no third line. The view now declares `"type": "webview"`.
+
+### Added
+
+- **A manifest regression test** (`tests/extension.test.ts`) asserting that the view is declared as a webview, that its id is the one passed to `registerWebviewViewProvider`, and that `onView:amd-tokenfactory.settings` is still an activation event. Reverting `"type": "webview"` fails the suite, so the pane type cannot silently regress again.
+
+### Changed
+
+- **Icons are ordinary PNG files again.** `images/icon.png` and `images/activity-icon.png` are tracked directly; the `*.png.b64` sources and the image-generation metadata are deleted; CI's `Restore icons` (`base64 -d`) step is gone. The indirection only existed because the GitHub connector could not push binaries. `.vscodeignore` drops `images/*.b64` and keeps `.workbuddy/**` out of the vsix.
+
+## [0.5.5] - 2026-10-18
+
+### Added
+
+- **Registration diagnostics for the settings view.** `activate()` logs `activate() started` plus the two `registerWebviewViewProvider` lines, and `resolveWebviewView` logs its own. The missing third line is what located the 0.5.6 bug: registration succeeded, resolution never happened.
+
+## [0.5.4] - 2026-10-18
+
+### Fixed
+
+- **The settings view had no implementation in the repository.** 0.5.0 declared the view, but `src/settings-view.ts` existed only locally, so a build from GitHub contributed a view whose provider had never been written. The provider (inlined HTML/CSS/JS behind a nonce CSP) and `tests/settings-view.test.ts` are in the tree now, and `activate()` registers it.
+
+### Added
+
+- **Panel contents**: masked API keys with a per-key Remove, an add-key input that stores into SecretStorage and migrates the key into the VS Code language model group, the cached model count, Refresh Models, the installed version and Check for Updates.
+
+### Changed
+
+- **CI decodes both icons**, not just `icon.png`, since 0.5.3 added a second base64 source.
+
+## [0.5.3] - 2026-10-18
+
+### Changed
+
+- **A dedicated activity bar icon.** The container points at `images/activity-icon.png` (red "A" glyph) instead of reusing `images/icon.png`, so the narrow activity bar slot no longer renders a downscaled marketplace icon. `images/*.b64` is excluded from the vsix.
+
+## [0.5.2] - 2026-10-18
+
+### Fixed
+
+- **Opening the view in a cold window registered no provider.** `activationEvents` listed only `onLanguageModelChatProvider:amd-tokenfactory`, so a window that had never used the provider did not activate the extension when the activity bar container was opened. `onView:amd-tokenfactory.settings` is an activation event now.
+
+## [0.5.1] - 2026-10-18
+
+### Fixed
+
+- **The icon binary arrived corrupted.** Pushing `images/icon.png` through the connector produced a file VS Code refused to load, so the icon is stored as base64 text (`images/icon.png.b64`) and decoded by CI before packaging. Two probe commits (a throwaway PNG added and removed again) established that binary pushes were the problem. This release is the version bump that carries the repaired icon: the updater only sees a new build when `package.json`'s version moves.
+
+### Changed
+
+- **The README no longer carries the inline fork attribution**, keeping the note about the sidebar panel.
+
+## [0.5.0] - 2026-10-18
+
+### Added
+
+- **An activity bar container with a settings view** (`amd-tokenfactory` → `amd-tokenfactory.settings`), so keys, model refresh and update checks no longer require the Command Palette. The manifest declared the view before any provider existed for it — see 0.5.4.
+
+### Changed
+
+- **CI publishes versioned releases.** The rolling `latest` release, deleted and recreated on every push, is replaced by a `v<version>` tag created once and then updated with `gh release upload --clobber`, matching the `/releases/latest` endpoint the updater reads.
+
+## [0.4.1] - 2026-10-17
+
+### Changed
+
+- **Self-update reads the newest release instead of a rolling tag.** The check moved from `releases/tags/latest` to `releases/latest`, so a release is identified by its version tag rather than by a tag CI deleted and recreated on every push. 0.4.0 asked for `tags/latest` while CI published no such tag, so the first check attempt could only ever fail.
+- **The README gained an architecture diagram**, and CI grew a release step that uploads the packaged vsix to GitHub Releases.
+
+## [0.4.0] - 2026-10-17
+
+### Added
+
+- **First public build of the AMD adaptation** (fork of `hidenobunagai/nvidia-nim-provider`): the same chat provider pointed at AMD TokenFactory's OpenAI-compatible endpoint, with requests rotating across a pool of API keys held in SecretStorage.
+- **Self-update check** (`src/updater.ts`): once a day, or on demand through **AMD TokenFactory: Check for Updates**, the extension reads the latest GitHub release, compares versions and offers **Download & Install**, which downloads the vsix into the temp directory and installs it via `workbench.extensions.installExtension`, falling back to `vscode.open` when the command is unavailable.
+- **CI**: compile, lint and test on ubuntu/macos/windows with coverage artifacts, plus a `package` job that builds the vsix.
+
+### Fixed
+
+- **Activation only looked at the single legacy secret**, so a key that lived in the rotation pool left the status bar empty and skipped the model refresh; `initializeStoredApiKey` reads the pool first now.
+
+### Changed
+
+- **Models the API reports as free are labelled `FREE`** in the model picker (`detail` and tooltip), mirroring the badge on the website.
+
 ## [0.3.8] - 2026-10-16
 
 ### Fixed
