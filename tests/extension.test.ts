@@ -257,6 +257,56 @@ describe("activate", () => {
     expect(providerContribution?.configuration?.required).toContain("apiKey");
   });
 
+  it("declares the sidebar settings view as a webview that matches the registered provider", async () => {
+    const packageJson = require("../package.json") as {
+      activationEvents?: string[];
+      contributes?: {
+        views?: Record<string, Array<{ id?: string; type?: string }>>;
+        viewsContainers?: { activitybar?: Array<{ id?: string }> };
+      };
+    };
+
+    const container = packageJson.contributes?.viewsContainers?.activitybar?.find(
+      (item) => item.id === "amd-tokenfactory",
+    );
+    expect(container).toBeDefined();
+
+    const views = packageJson.contributes?.views?.["amd-tokenfactory"] ?? [];
+    expect(views).toHaveLength(1);
+    // Without `"type": "webview"` VS Code builds a TreeView pane and renders
+    // "There is no data provider registered that can provide view data."
+    expect(views[0]).toEqual(
+      expect.objectContaining({ id: "amd-tokenfactory.settings", type: "webview" }),
+    );
+    expect(packageJson.activationEvents).toContain("onView:amd-tokenfactory.settings");
+
+    const secrets = {
+      get: jest.fn(async () => undefined),
+      store: jest.fn(),
+      delete: jest.fn(),
+      onDidChange: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+    const globalState = {
+      get: jest.fn((key: string, fallback?: unknown) =>
+        key === "amd-tokenfactory.debug" ? false : fallback,
+      ),
+      update: jest.fn(async () => undefined),
+    };
+    const context = {
+      secrets,
+      globalState,
+      subscriptions: [] as Array<{ dispose(): void }>,
+    };
+
+    const { activate } = await import("../src/extension");
+    activate(context as never);
+
+    expect(mockRegisterWebviewViewProvider).toHaveBeenCalledWith(
+      views[0]?.id,
+      expect.anything(),
+    );
+  });
+
   it("refreshes cached models in the background on activation when an API key exists", async () => {
     const rawModels = [
       {
