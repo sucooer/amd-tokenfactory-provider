@@ -197,9 +197,18 @@ export function formatModelLoad(
 
   const lines: string[] = [];
   lines.push(`**${PROVIDER_DISPLAY_NAME} fleet load** · ${formatTime(snapshot.fetchedAt)}`);
+  // "N of M usable" alone reads as "the rest are unusable"; the breakdown keeps "at capacity"
+  // (a real verdict) apart from "not reported" (no verdict at all).
+  const summary = [`${count("idle") + count("busy")} of ${total} usable`];
+  if (count("full") > 0) {
+    summary.push(`${count("full")} at capacity`);
+  }
+  if (unknown.length > 0) {
+    summary.push(`${unknown.length} not reported`);
+  }
   lines.push(
     `AMD-wide capacity (scope \`${snapshot.scope}\`), not your account's quota. ` +
-      `${count("idle") + count("busy")} of ${total} models reported usable.`,
+      `${summary.join(" · ")}.`,
   );
 
   const groups: Array<{ state: ModelLoadState; icon: string; title: string }> = [
@@ -225,7 +234,7 @@ export function formatModelLoad(
 
   if (unknown.length > 0) {
     lines.push("");
-    lines.push("**No load reported** — the fleet did not list these:");
+    lines.push("**No load data** — not listed by the fleet, so availability is unknown:");
     for (const row of unknown.slice(0, 8)) {
       lines.push(`- ${row.model.displayName}`);
     }
@@ -292,14 +301,22 @@ export interface ModelLoadWatcherOptions {
   intervalMs?: number;
 }
 
+export interface ModelLoadWatcher {
+  /** Re-read now instead of waiting for the next interval (used by a manual model refresh). */
+  refreshNow(): void;
+  dispose(): void;
+}
+
 /**
  * Poll the fleet load in the background. A chained timeout rather than `setInterval`: each request
  * can take longer than the interval, and overlapping 25s requests would only queue on the server.
  */
-export function watchModelLoad(options: ModelLoadWatcherOptions): { dispose(): void } {
+export function watchModelLoad(options: ModelLoadWatcherOptions): ModelLoadWatcher {
   const intervalMs = options.intervalMs ?? MODEL_LOAD_POLL_INTERVAL_MS;
   const fetchLoad = options.fetchLoad ?? fetchModelLoad;
   let disposed = false;
+  let inFlight = false;
+  let queued = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const schedule = (): void => {
@@ -310,22 +327,45 @@ export function watchModelLoad(options: ModelLoadWatcherOptions): { dispose(): v
   };
 
   const run = async (): Promise<void> => {
+    if (inFlight) {
+      // One queued re-read at most: a second click during a 25s request must not stack requests.
+      queued = true;
+      return;
+    }
+    inFlight = true;
     let snapshot: ModelLoadSnapshot | null = null;
     try {
       snapshot = await fetchLoad();
     } catch {
       snapshot = null;
     }
+    inFlight = false;
     if (disposed) {
       return;
     }
     options.onSnapshot(snapshot);
+    if (queued) {
+      queued = false;
+      void run();
+      return;
+    }
     schedule();
   };
 
   void run();
 
   return {
+    refreshNow(): void {
+      if (disposed) {
+        return;
+      }
+      if (timer) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+      void run();
+    },
+
     dispose(): void {
       disposed = true;
       if (timer) {

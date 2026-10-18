@@ -94,7 +94,11 @@ The numbers come from AMD's public load endpoint
   choosing, not how much you have left.
 - It needs no API key, but it queries live GPU metrics and answers in ~25 seconds. The extension
   therefore reads it in the background every five minutes and the tooltip shows the timestamp of
-  the last reading.
+  the last reading. Clicking the item (**Refresh Models**) re-reads the load immediately.
+
+The header breaks the count down as `9 of 16 usable · 3 at capacity · 4 not reported`. Models under
+**No load data** are missing from the fleet payload rather than known to be idle or busy — the
+fleet's model list changes between reads, and a model it does not mention can still be called.
 
 ## API notes
 

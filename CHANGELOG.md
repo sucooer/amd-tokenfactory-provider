@@ -14,6 +14,8 @@
 
 - **`StatusBarManager`** keeps the current model list and the last load snapshot, and rebuilds a `MarkdownString` tooltip (`supportThemeIcons`) whenever either changes. A failed read renders as "fleet load unavailable" instead of an empty section, and the first read — still in flight for ~25s — renders as "loading", so the tooltip never claims the fleet is idle when it simply has not answered.
 - **Activation seeds the tooltip** from the cached model list and re-seeds it after every model refresh, so the panel is populated before the first hover.
+- **"Refresh Models" now re-reads the load too.** Clicking the status bar item (or running the command from the palette, or the button in the settings panel) calls `refreshNow()` on the watcher, so the tooltip is at most seconds old instead of up to five minutes. Two clicks during one 25s read collapse into a single extra read, and a queued read is dropped on dispose.
+- **The header counts are broken out instead of lumped together.** `9 of 16 usable · 3 at capacity · 4 not reported` — "at capacity" is a verdict, "not reported" is the absence of one, and `9 of 16 usable` on its own read as "the other seven are unusable". The section listing models the fleet does not mention is now titled **No load data** with the same clarification, because the fleet's model list changes between reads: `MinerU2.5-Pro` and `d3` carried readings in one sample and were gone from the next.
 
 ## [0.5.6] - 2026-10-18
 

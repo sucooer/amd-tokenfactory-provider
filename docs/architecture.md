@@ -45,7 +45,7 @@ Copilot Chat
 | `constants.ts` | API base URL, timeout values, context window safety margins, and thinking-model sets. |
 | `errors.ts` | Classifies aborts and timeouts by `name` instead of `instanceof`, which is realm-dependent: `DOMException` extends `Error` in Node but not in Jest's node environment. Also normalizes unknown thrown values to `Error` and extracts user-facing messages. |
 | `status-bar.ts` | Status bar item showing model count and refresh action; its tooltip doubles as the per-model fleet-load panel. |
-| `model-load.ts` | Reads AMD's public fleet-load endpoint (`/radeon/api/tokenfactory/load`, no API key) and matches each entry to a cached model by normalized name, so the tooltip can group the picker's models into available / busy / at capacity. |
+| `model-load.ts` | Reads AMD's public fleet-load endpoint (`/radeon/api/tokenfactory/load`, no API key) and matches each entry to a cached model by normalized name, so the tooltip can group the picker's models into available / busy / at capacity. Polls every five minutes through a chained timeout, with `refreshNow()` for a manual model refresh. |
 | `utils.ts` | Strips `<think>` blocks out of streaming chunks (`filterThinkTagsFromChunk`, `flushThinkTagFilter`), including a tag split across two chunks. |
 
 ## Data Flow

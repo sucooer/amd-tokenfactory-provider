@@ -42,7 +42,11 @@ const mockStatusBarError = jest.fn();
 const mockStatusBarDispose = jest.fn();
 const mockStatusBarSetModels = jest.fn();
 const mockStatusBarSetModelLoad = jest.fn();
-const mockWatchModelLoad = jest.fn(() => ({ dispose: jest.fn() }));
+const mockFleetLoadRefresh = jest.fn();
+const mockWatchModelLoad = jest.fn(() => ({
+  dispose: jest.fn(),
+  refreshNow: mockFleetLoadRefresh,
+}));
 
 jest.mock("../src/status-bar", () => ({
   StatusBarManager: jest.fn().mockImplementation(() => ({
@@ -498,6 +502,8 @@ describe("activate", () => {
       },
     ]);
     expect(mockShowInformationMessage).toHaveBeenCalledWith("Refreshed 1 AMD TokenFactory models.");
+    // A manual refresh also re-reads the fleet load instead of leaving the tooltip up to 5 min old.
+    expect(mockFleetLoadRefresh).toHaveBeenCalled();
   });
 
   it("clears raw and normalized model caches when the refresh command returns an empty model list", async () => {
@@ -770,6 +776,8 @@ describe("activate", () => {
 
     expect(fetchModels).toHaveBeenCalledTimes(2);
     expect(mockShowInformationMessage).toHaveBeenCalledWith("Refreshed 1 AMD TokenFactory models.");
+    // A manual refresh also re-reads the fleet load instead of leaving the tooltip up to 5 min old.
+    expect(mockFleetLoadRefresh).toHaveBeenCalled();
   });
 
   it("preserves the normalized cache write error when rollback also fails", async () => {

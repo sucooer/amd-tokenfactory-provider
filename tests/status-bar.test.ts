@@ -123,11 +123,11 @@ describe("StatusBarManager", () => {
       fetchedAt: Date.now(),
       entries: [{ key: "Qwen3.8-27B", state: "idle", label: "Idle", utilization: 8.6 }],
     });
-    expect(item.tooltip.value).toContain("No load reported");
+    expect(item.tooltip.value).toContain("No load data");
 
     manager.setModels([{ id: "qwen/qwen3.8-27b", displayName: "Qwen 3.8 27B" }]);
 
-    expect(item.tooltip.value).not.toContain("No load reported");
+    expect(item.tooltip.value).not.toContain("No load data");
     expect(item.tooltip.value).toContain("Qwen 3.8 27B · 8.6%");
   });
 });

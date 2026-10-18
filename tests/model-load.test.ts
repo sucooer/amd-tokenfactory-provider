@@ -125,7 +125,7 @@ describe("formatModelLoad", () => {
 
     expect(markdown).toContain("**AMD TokenFactory fleet load** · 09:02:03");
     expect(markdown).toContain("not your account's quota");
-    expect(markdown).toContain("2 of 4 models reported usable");
+    expect(markdown).toContain("2 of 4 usable · 1 at capacity · 1 not reported");
     expect(markdown).toContain("**$(check) Available**\n- Qwen 3.8 27B · 9.8%");
     expect(markdown).toContain("**$(warning) Busy");
     expect(markdown).toContain("- GLM 5.3 Flash · 62.5%");
@@ -151,7 +151,9 @@ describe("formatModelLoad", () => {
     const match = matchModelLoad(models, crowded);
     const markdown = formatModelLoad(match, crowded);
 
-    expect(markdown).toContain("**No load reported**");
+    expect(markdown).toContain(
+      "**No load data** — not listed by the fleet, so availability is unknown:",
+    );
     expect(markdown).toContain("- GLM 5.3 Flash");
     expect(markdown).toContain("**Also on the fleet** (not in your model list)");
     expect(markdown).toContain("- Stranger0 · Idle · 0%");
@@ -161,7 +163,7 @@ describe("formatModelLoad", () => {
   it("falls back to the picker count when rows exceed the reported total", () => {
     const markdown = formatModelLoad(matchModelLoad(models, snapshot), snapshot, { total: 16 });
 
-    expect(markdown).toContain("2 of 16 models reported usable");
+    expect(markdown).toContain("2 of 16 usable · 1 at capacity · 1 not reported");
   });
 });
 
@@ -277,5 +279,65 @@ describe("watchModelLoad", () => {
     expect(onSnapshot).toHaveBeenLastCalledWith(expect.objectContaining({ scope: "fleet" }));
 
     watcher.dispose();
+  });
+
+  it("re-reads at once and restarts the interval when refreshNow is called", async () => {
+    const snapshot = parseModelLoad(payload, 1000) as ModelLoadSnapshot;
+    const fetchLoad = jest.fn(async () => snapshot);
+    const onSnapshot = jest.fn();
+
+    const watcher = watchModelLoad({ onSnapshot, fetchLoad, intervalMs: 60000 });
+    await flush();
+    expect(fetchLoad).toHaveBeenCalledTimes(1);
+
+    watcher.refreshNow();
+    await flush();
+    expect(fetchLoad).toHaveBeenCalledTimes(2);
+
+    // The click postponed the scheduled read rather than adding one on top of it.
+    await jest.advanceTimersByTimeAsync(59999);
+    expect(fetchLoad).toHaveBeenCalledTimes(2);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(fetchLoad).toHaveBeenCalledTimes(3);
+
+    watcher.dispose();
+  });
+
+  it("queues at most one re-read while a request is still in flight", async () => {
+    const snapshot = parseModelLoad(payload, 1000) as ModelLoadSnapshot;
+    let releaseFirst!: (value: ModelLoadSnapshot) => void;
+    const firstResponse = new Promise<ModelLoadSnapshot>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const fetchLoad = jest.fn().mockReturnValueOnce(firstResponse).mockResolvedValue(snapshot);
+    const onSnapshot = jest.fn();
+
+    const watcher = watchModelLoad({ onSnapshot, fetchLoad, intervalMs: 60000 });
+    await flush();
+    expect(fetchLoad).toHaveBeenCalledTimes(1);
+
+    watcher.refreshNow();
+    watcher.refreshNow();
+    releaseFirst(snapshot);
+    await flush();
+
+    // Two clicks during the 25s request collapse into one extra read, not a queue of them.
+    expect(fetchLoad).toHaveBeenCalledTimes(2);
+    expect(onSnapshot).toHaveBeenCalledTimes(2);
+
+    watcher.dispose();
+  });
+
+  it("ignores refreshNow after dispose", async () => {
+    const fetchLoad = jest.fn(async () => parseModelLoad(payload, 1000));
+    const watcher = watchModelLoad({ onSnapshot: jest.fn(), fetchLoad, intervalMs: 60000 });
+    await flush();
+    expect(fetchLoad).toHaveBeenCalledTimes(1);
+
+    watcher.dispose();
+    watcher.refreshNow();
+    await flush();
+
+    expect(fetchLoad).toHaveBeenCalledTimes(1);
   });
 });

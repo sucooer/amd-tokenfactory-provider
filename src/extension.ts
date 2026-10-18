@@ -161,9 +161,8 @@ export function activate(context: vscode.ExtensionContext) {
   // AMD's fleet load is what the website's Busy / At capacity gauges show. It needs no API key,
   // answers in ~25s, and is only surfaced in the status bar tooltip, so it is polled rarely and
   // never awaited by anything user-facing.
-  context.subscriptions.push(
-    watchModelLoad({ onSnapshot: (load) => statusBar.setModelLoad(load) }),
-  );
+  const fleetLoad = watchModelLoad({ onSnapshot: (load) => statusBar.setModelLoad(load) });
+  context.subscriptions.push(fleetLoad);
   const debugEnabled = context.globalState.get<boolean>(DEBUG_STATE_KEY, false);
   process.env[DEBUG_ENV_VAR] = debugEnabled ? "1" : "0";
   debugLog(
@@ -281,6 +280,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(REFRESH_MODELS_COMMAND_ID, async () => {
       await refreshModelsFromApi(context, ua, statusBar, { showMessages: true });
+      // A manual refresh should not leave the tooltip showing numbers up to five minutes old.
+      fleetLoad.refreshNow();
     }),
   );
 
